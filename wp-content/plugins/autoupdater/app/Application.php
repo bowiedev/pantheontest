@@ -1,8 +1,8 @@
 <?php
 function_exists('add_action') or die;
 
-include_once AUTOUPDATER_WP_PLUGIN_PATH . 'app/Admin.php';
-include_once AUTOUPDATER_WP_PLUGIN_PATH . 'app/Whitelabelling.php';
+require_once AUTOUPDATER_WP_PLUGIN_PATH . 'app/Admin.php';
+require_once AUTOUPDATER_WP_PLUGIN_PATH . 'app/Whitelabelling.php';
 
 class AutoUpdater_WP_Application
 {
@@ -26,7 +26,7 @@ class AutoUpdater_WP_Application
 
     public function __construct()
     {
-        add_action('init', array($this, 'siteOffline'));
+        $this->siteOffline(); // display the maintenace mode as early as possible, don't use WordPress "init" action
         add_action('plugins_loaded', array($this, 'loadLanguages'));
 
         AutoUpdater_WP_Whitelabelling::getInstance();
@@ -43,7 +43,12 @@ class AutoUpdater_WP_Application
         global $pagenow;
 
         // Allow to log in to the back-end and white list the AutoUpdater service
-        if (is_admin() || $pagenow == 'wp-login.php' || isset($_GET['autoupdater_nonce']) || isset($_GET['autoupdater']) || php_sapi_name() == 'cli') {
+        if (
+            is_admin() || $pagenow == 'wp-login.php' ||
+            AutoUpdater_Request::getQueryVar('autoupdater_nonce') ||
+            AutoUpdater_Request::getQueryVar('autoupdater') ||
+            php_sapi_name() == 'cli'
+        ) {
             return;
         }
 
@@ -64,8 +69,9 @@ class AutoUpdater_WP_Application
             $path = AUTOUPDATER_WP_PLUGIN_PATH . 'tmpl/offline.tmpl.php';
         }
 
+        // Get template into buffer
         ob_start();
-        include $path;
+        include $path; // phpcs:ignore
         $body = ob_get_clean();
 
         AutoUpdater_Response::getInstance()

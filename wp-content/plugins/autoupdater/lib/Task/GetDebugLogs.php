@@ -10,11 +10,8 @@ class AutoUpdater_Task_GetDebugLogs extends AutoUpdater_Task_Base
      */
     public function doTask()
     {
-        $date = preg_replace('/[^0-9-]/', '',
-            $this->input('date', date('Y-m-d'))
-        );
-        $path = AutoUpdater_Log::getInstance()->getLogsPath()
-            . 'autoupdater_' . $date . '.logs.php';
+        $date = preg_replace('/[^0-9-]/', '', $this->input('date', date('Y-m-d')));
+        $path = AutoUpdater_Log::getInstance()->getLogsFilePath($date);
 
         $filemanager = AutoUpdater_Filemanager::getInstance();
         if (!$filemanager->is_file($path)) {

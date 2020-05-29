@@ -79,5 +79,6 @@ class AutoUpdater_Command_Maintenance extends AutoUpdater_Command_Base
     }
 
     public static function beforeInvoke()
-    { }
+    {
+    }
 }

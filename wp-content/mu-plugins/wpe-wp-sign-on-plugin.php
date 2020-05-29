@@ -3,7 +3,7 @@
  * Plugin Name: WP Engine Seamless Login Plugin
  * Plugin URI:  https://www.wpengine.com
  * Description: WP Engine Seamless Login Plugin
- * Version:     1.5.3
+ * Version:     1.5.4
  * Author:      WP Engine
  *
  * @package wpengine\sign_on_plugin
@@ -258,7 +258,7 @@ class WPESignOnPlugin {
 		} catch ( UserMetaAdditionException $e ) {
 			$this->sign_on_user_provider->rollback_user_creation( $user_email );
 			$redirect_url = self::REDIRECT_URL_ON_ERROR;
-			$error        = Logger::USER_CREATE_ERROR . ": {$e->getMessage()}";
+			$error        = Logger::ADD_USER_META_ERROR . ": {$e->getMessage()}";
 		} catch ( InvalidInstallNameException $e ) {
 			$redirect_url = self::REDIRECT_URL_ON_ERROR;
 			$error        = Logger::INSTALL_NAME_ERROR . ": {$e->getMessage()}";

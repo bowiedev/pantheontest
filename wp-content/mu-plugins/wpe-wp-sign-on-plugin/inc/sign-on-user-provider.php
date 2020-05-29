@@ -66,7 +66,7 @@ class SignOnUserProvider {
 	public function user_email_matches_current_user( $user_email ) {
 		$user = $this->determine_current_user();
 
-		return $user && $user->exists() && $user->data->user_email === $user_email;
+		return $user && $user->exists() && strcasecmp( $user->data->user_email, $user_email ) === 0;
 	}
 
 	protected function add_user_created_time_to_meta_data( $user_id ) {

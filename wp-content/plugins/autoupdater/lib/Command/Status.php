@@ -37,7 +37,10 @@ class AutoUpdater_Command_Status extends AutoUpdater_Command_Base
         }
 
         if ($assoc_args['output'] === 'json') {
-            WP_CLI::line(json_encode($response->body->updates, JSON_PRETTY_PRINT));
+            WP_CLI::line(json_encode(
+                $response->body->updates,
+                JSON_PRETTY_PRINT // phpcs:ignore PHPCompatibility.Constants.NewConstants
+            ));
         } elseif ($assoc_args['output'] === 'yaml') {
             WP_CLI\Utils\format_items('yaml', $response->body->updates, array(
                 'id',

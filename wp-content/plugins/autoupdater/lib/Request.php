@@ -3,24 +3,7 @@ defined('AUTOUPDATER_LIB') or die;
 
 class AutoUpdater_Request
 {
-    protected static $instance = null;
     protected static $timeout = 5;
-
-    /**
-     * @return static
-     */
-    protected static function getInstance()
-    {
-        if (!is_null(static::$instance)) {
-            return static::$instance;
-        }
-
-        $class_name = AutoUpdater_Loader::loadClass('Request');
-
-        static::$instance = new $class_name();
-
-        return static::$instance;
-    }
 
     /**
      * @param string     $url
@@ -32,7 +15,31 @@ class AutoUpdater_Request
      */
     public static function get($url, $data = null, $headers = null, $timeout = null)
     {
-        return static::getInstance()->makeGetRequest($url, $data, $headers, $timeout);
+        if (is_array($data)) {
+            $query = array();
+            foreach ($data as $key => $value) {
+                $query[] = $key . '=' . rawurlencode($value);
+            }
+
+            if (!empty($query)) {
+                $url .= (strpos($url, '?') === false ? '?' : '&') . implode('&', $query);
+            }
+        }
+
+        $args = array(
+            'sslverify' => AutoUpdater_Config::get('ssl_verify', 0) ? true : false,
+            'timeout' => $timeout ? $timeout : static::$timeout,
+        );
+
+        if (!empty($headers)) {
+            $args['headers'] = $headers;
+        }
+
+        AutoUpdater_Log::debug("GET $url\nArgs " . print_r($args, true));
+        $result = wp_remote_get($url, $args);
+
+        return AutoUpdater_Response::getInstance()
+            ->bind($result);
     }
 
     /**
@@ -47,7 +54,32 @@ class AutoUpdater_Request
      */
     public static function post($url, $data = null, $headers = null, $timeout = null)
     {
-        return static::getInstance()->makePostRequest($url, $data, $headers, $timeout);
+        $args = array(
+            'sslverify' => AutoUpdater_Config::get('ssl_verify', 0) ? true : false,
+            'timeout' => $timeout ? $timeout : static::$timeout,
+        );
+
+        if (!empty($headers)) {
+            $args['headers'] = $headers;
+        }
+
+        if (!empty($data)) {
+            if (
+                isset($headers['Content-Type']) &&
+                strpos($headers['Content-Type'], 'application/json') !== false &&
+                !is_scalar($data)
+            ) {
+                $args['body'] = json_encode($data);
+            } else {
+                $args['body'] = $data;
+            }
+        }
+
+        AutoUpdater_Log::debug("POST $url\nArgs " . print_r($args, true));
+        $result = wp_remote_post($url, $args);
+
+        return AutoUpdater_Response::getInstance()
+            ->bind($result);
     }
 
     /**
@@ -61,8 +93,13 @@ class AutoUpdater_Request
 
         return 'http' . (is_ssl() ? 's' : '')
             . '://'
-            . $_SERVER['HTTP_HOST']
-            . (!empty($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '');
+            // Not form input data
+            . $_SERVER['HTTP_HOST'] // phpcs:ignore
+            . (!empty($_SERVER['REQUEST_URI']) ?
+                parse_url(
+                    filter_var(wp_unslash($_SERVER['REQUEST_URI']), FILTER_SANITIZE_URL),
+                    PHP_URL_PATH
+                ) : '');
     }
 
     /**
@@ -89,7 +126,7 @@ class AutoUpdater_Request
         }
 
         foreach ($query as $key => $value) {
-            $query[$key] = $key . '=' . urlencode($value);
+            $query[$key] = $key . '=' . rawurlencode($value);
         }
 
         return AutoUpdater_Config::getAutoUpdaterApiBaseUrl()
@@ -148,77 +185,17 @@ class AutoUpdater_Request
     }
 
     /**
-     * @param string     $url
-     * @param null|array $data
-     * @param null|array $headers
-     * @param null|int   $timeout
-     *
-     * @return AutoUpdater_Response
+     * @param string $key
+     * @param mixed $default
+     * 
+     * @return mixed
      */
-    protected function makeGetRequest($url, $data = null, $headers = null, $timeout = null)
+    public static function getQueryVar($key, $default = null)
     {
-        if (is_array($data)) {
-            $query = array();
-            foreach ($data as $key => $value) {
-                $query[] = $key . '=' . urlencode($value);
-            }
-
-            if (!empty($query)) {
-                $url .= (strpos($url, '?') === false ? '?' : '&') . implode('&', $query);
-            }
+        if (!array_key_exists($key, $_GET)) { // phpcs:ignore
+            return $default;
         }
 
-        $args = array(
-            'sslverify' => AutoUpdater_Config::get('ssl_verify', 0) ? true : false,
-            'timeout' => $timeout ? $timeout : static::$timeout,
-        );
-
-        if (!empty($headers)) {
-            $args['headers'] = $headers;
-        }
-
-        AutoUpdater_Log::debug("GET $url\nArgs " . print_r($args, true));
-        $result = wp_remote_get($url, $args);
-
-        return AutoUpdater_Response::getInstance()
-            ->bind($result);
-    }
-
-    /**
-     * @param string            $url
-     * @param null|array|string $data
-     * @param null|array        $headers
-     * @param null|int          $timeout
-     *
-     * @return AutoUpdater_Response
-     */
-    protected function makePostRequest($url, $data = null, $headers = null, $timeout = null)
-    {
-        $args = array(
-            'sslverify' => AutoUpdater_Config::get('ssl_verify', 0) ? true : false,
-            'timeout' => $timeout ? $timeout : static::$timeout,
-        );
-
-        if (!empty($headers)) {
-            $args['headers'] = $headers;
-        }
-
-        if (!empty($data)) {
-            if (
-                isset($headers['Content-Type']) &&
-                strpos($headers['Content-Type'], 'application/json') !== false &&
-                !is_scalar($data)
-            ) {
-                $args['body'] = json_encode($data);
-            } else {
-                $args['body'] = $data;
-            }
-        }
-
-        AutoUpdater_Log::debug("POST $url\nArgs " . print_r($args, true));
-        $result = wp_remote_post($url, $args);
-
-        return AutoUpdater_Response::getInstance()
-            ->bind($result);
+        return $_GET[$key]; // phpcs:ignore
     }
 }

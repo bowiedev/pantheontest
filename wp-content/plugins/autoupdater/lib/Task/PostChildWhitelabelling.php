@@ -11,7 +11,6 @@ class AutoUpdater_Task_PostChildWhitelabelling extends AutoUpdater_Task_Base
         $name = $this->input('name');
         $author = $this->input('author');
         $child_page = $this->input('child_page');
-        $login_page = $this->input('login_page');
         $protect_child = (int) $this->input('protect_child', 1);
         $hide_child = (int) $this->input('hide_child');
 
@@ -31,12 +30,6 @@ class AutoUpdater_Task_PostChildWhitelabelling extends AutoUpdater_Task_Base
             AutoUpdater_Config::remove('whitelabel_child_page');
         } else {
             AutoUpdater_Config::set('whitelabel_child_page', $child_page);
-        }
-
-        if (empty($login_page)) {
-            AutoUpdater_Config::remove('whitelabel_login_page');
-        } else {
-            AutoUpdater_Config::set('whitelabel_login_page', $login_page);
         }
 
         AutoUpdater_Config::set('protect_child', $protect_child);

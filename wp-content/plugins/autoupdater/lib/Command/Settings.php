@@ -181,7 +181,10 @@ class AutoUpdater_Command_Settings extends AutoUpdater_Command_Base
         }
 
         if ($assoc_args['output'] === 'json') {
-            WP_CLI::line(json_encode($response->body->settings, JSON_PRETTY_PRINT));
+            WP_CLI::line(json_encode(
+                $response->body->settings,
+                JSON_PRETTY_PRINT // phpcs:ignore PHPCompatibility.Constants.NewConstants
+            ));
         } elseif ($assoc_args['output'] === 'yaml') {
             WP_CLI\Utils\format_items('yaml', $response->body, array(
                 'settings',
@@ -290,7 +293,7 @@ class AutoUpdater_Command_Settings extends AutoUpdater_Command_Base
     {
         $hours = array(0, 6, 12, 18);
         if (!is_numeric($value) || !in_array((int) $value, $hours)) {
-            WP_CLI::error(sprinmtf('The allowed hours for the --autoupdate-at option are: %s.', implode(', ', $hours)), false);
+            WP_CLI::error(sprintf('The allowed hours for the --autoupdate-at option are: %s.', implode(', ', $hours)), false);
             return false;
         }
 

@@ -54,6 +54,18 @@ class AutoUpdater_Log
     }
 
     /**
+     * @param string $date The date in format YYYY-MM-DD
+     * @return string
+     */
+    public function getLogsFilePath($date = '')
+    {
+        if (!$date) {
+            $date = date('Y-m-d');
+        }
+        return $this->getLogsPath() . 'autoupdater_' . $date . '.logs.php';
+    }
+
+    /**
      * @param string $level
      * @param string $message
      */
@@ -64,25 +76,39 @@ class AutoUpdater_Log
         }
 
         $path = $this->getLogsPath();
-        $file = 'autoupdater_' . date('Y-m-d') . '.logs.php';
         $filemanager = AutoUpdater_Filemanager::getInstance();
 
         if (!$filemanager->is_dir($path)) {
             $filemanager->mkdir($path);
         }
 
-        if (!$filemanager->exists($path . $file)) {
-            file_put_contents($path . $file, '<?php die(); ?>');
+        $file_path = $this->getLogsFilePath();
+        if (!$filemanager->exists($file_path)) {
+            $filemanager->put_contents($file_path, '<?php die(); ?>');
         }
 
         $level = strtoupper($level);
         $date = date('Y-m-d H:i:s');
 
-        file_put_contents(
-            $path . $file,
+        $filemanager->put_contents(
+            $file_path,
             "\n[$date] $level $message",
             FILE_APPEND
         );
+
+        if ($level == 'ERROR') {
+            // Log AutoUpdater errors additionaly to PHP error log file. Make sure it won't be displayed
+            $display_errors = ini_set('display_errors', 0); // phpcs:ignore
+            $error_reporting_level = error_reporting(E_ALL); // phpcs:ignore
+
+            trigger_error(sprintf('[AutoUpdater] %s', str_replace("\n", ' ', $message)), E_USER_NOTICE); // phpcs:ignore
+
+            // Restore previous settings of error reporting and displaying
+            error_reporting($error_reporting_level); // phpcs:ignore
+            if ($display_errors !== false) {
+                ini_set('display_errors', $display_errors); // phpcs:ignore
+            }
+        }
     }
 
     public static function traceHooks()

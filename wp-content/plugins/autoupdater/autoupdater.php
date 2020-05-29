@@ -3,7 +3,7 @@
  * Plugin Name: WP Engine Smart Plugin Manager
  * Plugin URI:
  * Description: WP Engine Smart Plugin Manager simplifies plugin management by automatically updating your plugins every day and ensuring your site continues to work as expected.
- * Version: 2.0.13
+ * Version: 2.0.17
  * Text Domain: autoupdater
  * Author: WP Engine
  * Author URI: https://wpengine.com
@@ -29,7 +29,10 @@ if (!defined('AUTOUPDATER_WP_VERSION')) {
     define('AUTOUPDATER_WP_VERSION', AutoUpdater_getWpVersion());
 }
 
-if (version_compare(AUTOUPDATER_WP_VERSION, '3.0', '>=') && version_compare(PHP_VERSION, '5.3', '>=')) {
+if (
+    version_compare(AUTOUPDATER_WP_VERSION, '3.0', '>=') &&
+    (version_compare(PHP_VERSION, '5.3', '>=') && !defined('WP_CLI') || version_compare(PHP_VERSION, '5.6', '>='))
+) {
     $data = get_file_data(__FILE__, array('Name' => 'Plugin Name', 'Author' => 'Author', 'Version' => 'Version'));
 
     define('AUTOUPDATER_WP_PLUGIN_NAME', $data['Name']);
@@ -44,31 +47,6 @@ if (version_compare(AUTOUPDATER_WP_VERSION, '3.0', '>=') && version_compare(PHP_
     define('AUTOUPDATER_VERSION', $data['Version']);
     define('AUTOUPDATER_API_HOST', 'au-api.wpesvc.net');
 
-    if (!function_exists('AutoUpdater_getRootPath')) {
-        function AutoUpdater_getRootPath()
-        {
-            if (!empty($_SERVER['SCRIPT_FILENAME'])) {
-                $path = dirname(realpath($_SERVER['SCRIPT_FILENAME'])) . '/';
-                if (basename($path) == 'wp-admin') {
-                    return dirname($path) . '/';
-                }
-
-                return $path;
-            }
-
-            $files = get_included_files();
-            if (isset($files[0]) && substr($files[0], -9) == 'index.php') {
-                return dirname(realpath($files[0])) . '/';
-            }
-
-            return AUTOUPDATER_SITE_PATH;
-        }
-    }
-
-    if (!defined('AUTOUPDATER_ROOT_PATH')) {
-        define('AUTOUPDATER_ROOT_PATH', AutoUpdater_getRootPath());
-    }
-
     require_once AUTOUPDATER_WP_PLUGIN_PATH . 'lib/Init.php';
 
     $api = AutoUpdater_Api::getInstance();
@@ -81,15 +59,14 @@ if (version_compare(AUTOUPDATER_WP_VERSION, '3.0', '>=') && version_compare(PHP_
     require_once AUTOUPDATER_WP_PLUGIN_PATH . 'app/Application.php';
 
     AutoUpdater_WP_Application::getInstance();
-} elseif (!function_exists('autoUpdaterRequirementsNotice')) {
+} elseif (!function_exists('autoUpdaterRequirementsNotice') && !defined('WP_CLI')) {
     function autoUpdaterRequirementsNotice()
     {
-        ?>
+?>
         <div class="error">
-            <p><?php printf(__('This plugin requires WordPress %s and PHP %s', 'autoupdater'), '3.0+', '5.3+');?></p>
+            <p><?php printf(esc_html__('This plugin requires WordPress %s and PHP %s', 'autoupdater'), '3.0+', '5.3+'); ?></p>
         </div>
-        <?php
-
+<?php
     }
 
     add_action('admin_notices', 'autoUpdaterRequirementsNotice');

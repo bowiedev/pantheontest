@@ -104,7 +104,8 @@ class AutoUpdater_Response
             ) {
                 try {
                     $this->body = json_decode($data['body']);
-                } catch (Exception $e) { }
+                } catch (Exception $e) {
+                }
             }
         }
 
@@ -133,7 +134,7 @@ class AutoUpdater_Response
      */
     public function setCode($code)
     {
-        $this->code = (int)$code;
+        $this->code = (int) $code;
 
         return $this;
     }
@@ -145,7 +146,7 @@ class AutoUpdater_Response
      */
     public function setMessage($message)
     {
-        $this->message = (string)$message;
+        $this->message = (string) $message;
 
         return $this;
     }
@@ -204,7 +205,7 @@ class AutoUpdater_Response
      */
     public function setEncryption($encrypt)
     {
-        $this->encrypt = (bool)$encrypt;
+        $this->encrypt = (bool) $encrypt;
 
         return $this;
     }
@@ -259,27 +260,15 @@ class AutoUpdater_Response
 
         if (is_array($this->body) || (isset($this->headers['Content-Type']) &&
             strpos($this->headers['Content-Type'], 'application/json') !== false)) {
-            $body = is_scalar($this->body) ? $this->body : json_encode($this->body);
-
-            echo $this->prepareBody($body);
+            $body = $this->prepareBody(
+                is_scalar($this->body) ? $this->body : json_encode($this->body)
+            );
         } else {
-            echo $this->prepareBody($this->body, false);
+            $body = $this->prepareBody($this->body, false);
         }
-    }
 
-    public function sendFile($filename)
-    {
-        $this->setHeader('Content-Description', 'File Transfer')
-            ->setHeader('Content-Type', 'application/octet-stream')
-            ->setHeader('Content-Disposition', 'attachment; filename="' . basename($filename) . '"')
-            ->setHeader('Expires', '0')
-            ->setHeader('Cache-Control', 'must-revalidate')
-            ->setHeader('Pragma', 'public')
-            ->setHeader('Content-Length', filesize($filename))
-            ->sendHeaders();
-
-        readfile($filename);
-        exit();
+        // Outputs HTTP response body
+        echo $body; // phpcs:ignore
     }
 
     private function prepareBody($body, $wrap = true)

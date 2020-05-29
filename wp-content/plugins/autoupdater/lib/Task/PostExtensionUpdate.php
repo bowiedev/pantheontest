@@ -35,8 +35,9 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
         }
 
         $upgrader_path = AUTOUPDATER_LIB_PATH . 'Upgrader/';
-        require_once $upgrader_path . 'Dependencies.php';
+        require_once $upgrader_path . 'Dependencies.php'; // phpcs:ignore
 
+        AutoUpdater_Loader::loadClass('Helper_Extension');
         AutoUpdater_Loader::loadClass('Helper_Version');
 
         $old_version = $new_version = null;
@@ -46,8 +47,8 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
             case 'core':
                 AutoUpdater_Log::debug('Starting to update WordPress');
 
-                require_once $upgrader_path . 'Core.php';
-                require_once $upgrader_path . 'Skin/Core.php';
+                require_once $upgrader_path . 'Core.php'; // phpcs:ignore
+                require_once $upgrader_path . 'Skin/Core.php'; // phpcs:ignore
 
                 $wp_upgrade_dir = WP_CONTENT_DIR . '/upgrade';
                 if (!$filemanager->is_dir($wp_upgrade_dir)) {
@@ -105,20 +106,17 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
             case 'plugin':
                 AutoUpdater_Log::debug('Starting to update plugin: ' . $slug);
 
-                require_once $upgrader_path . 'Plugin.php';
-                require_once $upgrader_path . 'Skin/Plugin.php';
+                require_once $upgrader_path . 'Plugin.php'; // phpcs:ignore
+                require_once $upgrader_path . 'Skin/Plugin.php'; // phpcs:ignore
 
                 if (!$path && strpos($slug, 'masterslider.php') !== false) {
                     // prepare update of exceptional plugins
-                    if (!class_exists(AutoUpdater_Loader::getClassPrefix() . 'Helper_Extension')) {
-                        require_once AUTOUPDATER_LIB_PATH . 'Helper/Extension.php';
-                    }
                     AutoUpdater_Helper_Extension::loadMasterSliderPro();
                 }
 
                 $plugin_path = WP_PLUGIN_DIR . '/' . $slug;
                 if (!$filemanager->exists($plugin_path)) {
-                    $slug = $this->getPluginRealSlug($slug);
+                    $slug = AutoUpdater_Helper_Extension::getPluginRealSlug($slug);
                     if (!$slug) {
                         throw AutoUpdater_Exception_Response::getException(
                             200,
@@ -140,7 +138,7 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
                 } else {
                     $plugin = $slug;
                     $nonce = 'upgrade-plugin_' . $plugin;
-                    $url = 'update.php?action=upgrade-plugin&plugin=' . urlencode($plugin);
+                    $url = 'update.php?action=upgrade-plugin&plugin=' . rawurlencode($plugin);
                 }
 
                 ob_start();
@@ -160,12 +158,12 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
             case 'theme':
                 AutoUpdater_Log::debug('Starting to update theme: ' . $slug);
 
-                require_once $upgrader_path . 'Theme.php';
-                require_once $upgrader_path . 'Skin/Theme.php';
+                require_once $upgrader_path . 'Theme.php'; // phpcs:ignore
+                require_once $upgrader_path . 'Skin/Theme.php'; // phpcs:ignore
 
                 $theme_path = WP_CONTENT_DIR . '/themes/' . $slug . '/style.css';
                 if (!$filemanager->exists($theme_path)) {
-                    $theme_path = $this->getThemeRealPath($slug);
+                    $theme_path = AutoUpdater_Helper_Extension::getThemeRealPath($slug);
                     if (!$theme_path) {
                         throw AutoUpdater_Exception_Response::getException(
                             200,
@@ -186,7 +184,7 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
                 } else {
                     $theme = $slug;
                     $nonce = 'upgrade-theme_' . $theme;
-                    $url = 'update.php?action=upgrade-theme&theme=' . urlencode($theme);
+                    $url = 'update.php?action=upgrade-theme&theme=' . rawurlencode($theme);
                 }
 
                 ob_start();
@@ -212,7 +210,7 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
                     break;
                 }
 
-                require_once $upgrader_path . 'Skin/Languagepack.php';
+                require_once $upgrader_path . 'Skin/Languagepack.php'; // phpcs:ignore
 
                 $url = 'update-core.php?action=do-translation-upgrade';
                 $nonce = 'upgrade-translations';
@@ -309,73 +307,5 @@ class AutoUpdater_Task_PostExtensionUpdate extends AutoUpdater_Task_Base
         }
 
         return $response;
-    }
-
-    /**
-     * @param string $slug
-     *
-     * @return string|null
-     */
-    protected function getPluginRealSlug($slug)
-    {
-        $plugin_dir_paths = glob(WP_PLUGIN_DIR . '/*');
-        foreach ($plugin_dir_paths as $dir_path) {
-            $dir = basename($dir_path);
-
-            // Single file plugin
-            if (strpos($slug, '/') === false) {
-                if (strtolower($dir) === $slug) {
-                    return $dir;
-                }
-                continue;
-            }
-
-            // Plugin in directory
-            if (strtolower($dir) === dirname($slug)) {
-                $plugin_file_paths = glob(WP_PLUGIN_DIR . '/' . $dir . '/*.php');
-                foreach ($plugin_file_paths as $file_path) {
-                    $file = basename($file_path);
-                    $slug_file = basename($slug);
-                    if (strtolower($file) === $slug_file) {
-                        return $dir . '/' . $file;
-                    }
-                    continue;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param string $slug
-     *
-     * @return string|null
-     */
-    protected function getThemeRealPath(&$slug)
-    {
-        // Theme in directory: wp-themes/slug
-        $files = glob(WP_CONTENT_DIR . '/themes/*/style.css');
-        foreach ($files as $file_path) {
-            $slug_based_on_file = basename(dirname($file_path));
-            // Is directory before style.css file the same as slug?
-            if (strtolower($slug_based_on_file) === $slug) {
-                $slug = $slug_based_on_file;
-                return $file_path;
-            }
-        }
-
-        // Theme in subdirectory: wp-themes/slug-1.0.0/slug
-        $files = glob(WP_CONTENT_DIR . '/themes/*/*/style.css');
-        foreach ($files as $file_path) {
-            $slug_based_on_file = basename(dirname($file_path));
-            // Is directory before style.css file the same as slug?
-            if (strtolower($slug_based_on_file) === $slug) {
-                $slug = $slug_based_on_file;
-                return $file_path;
-            }
-        }
-
-        return null;
     }
 }

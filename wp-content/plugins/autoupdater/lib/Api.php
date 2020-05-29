@@ -37,14 +37,15 @@ class AutoUpdater_Api
     public function __construct()
     {
         // Initialize AutoUpdater API if met the minimal requirements
-        $method = isset($_SERVER['REQUEST_METHOD']) ? strtolower($_SERVER['REQUEST_METHOD']) : null;
+        // Input data sanitized with preg_replace
+        $method = isset($_SERVER['REQUEST_METHOD']) ? strtolower(preg_replace('/[^a-z]/i', '', $_SERVER['REQUEST_METHOD'])) : null; // phpcs:ignore
         if (
-            isset($_GET['autoupdater']) && $_GET['autoupdater'] == 'api' &&
-            isset($_GET['wpe_endpoint']) &&
-            isset($_GET['wpe_signature']) &&
+            AutoUpdater_Request::getQueryVar('autoupdater') == 'api' &&
+            // Not processing form input data
+            isset($_GET['wpe_endpoint']) && isset($_GET['wpe_signature']) && // phpcs:ignore
             in_array($method, array('get', 'post'))
         ) {
-            $this->init();
+            $this->init($method);
         }
     }
 
@@ -56,89 +57,22 @@ class AutoUpdater_Api
         return $this->initialized;
     }
 
-    protected function init()
+    /**
+     * @param string $method
+     */
+    protected function init($method)
     {
-        $method = isset($_SERVER['REQUEST_METHOD']) ? strtolower($_SERVER['REQUEST_METHOD']) : null;
-
         // Get all data from the request
-        $payload = array();
-        foreach ($_GET as $key => $value) {
-            if (substr($key, 0, 4) == 'wpe_' && $key != 'wpe_signature') {
-                $payload[$key] = urldecode($value);
-            }
-        }
-        // Sort the request data by keys, to generate a correct signature from the payload
-        ksort($payload);
+        $payload = $this->getPayload($method);
 
-        if ($method == 'post') {
-            // Get the request JSON body
-            $body = file_get_contents('php://input');
-            // Do not decode JSON before validation
-            $payload['json'] = is_string($body) ? $body : '';
-        }
-
-        try {
-            // Validate the request payload
-            AutoUpdater_Authentication::getInstance()->validate($payload);
-        } catch (Exception $e) {
-            AutoUpdater_Response::getInstance()
-                ->setCode(403)
-                ->setAutoupdaterHeader()
-                ->setBody(array(
-                    'error' => array(
-                        'code' => $e->getCode(),
-                        'message' => $e->getMessage(),
-                    ),
-                ))
-                ->sendJSON();
-        }
+        $this->validatePayload($payload, $method);
 
         // Decode JSON
-        if (isset($payload['json'])) {
-            try {
-                $json = json_decode($payload['json'], true);
-                unset($payload['json']);
-                $payload = array_merge($payload, $json);
-            } catch (Exception $e) {
-                AutoUpdater_Response::getInstance()
-                    ->setCode(400)
-                    ->setAutoupdaterHeader()
-                    ->setData(array(
-                        'success' => false,
-                        'message' => 'Failed to decode JSON',
-                        'error' => array(
-                            'code' => $e->getCode(),
-                            'message' => $e->getMessage(),
-                        ),
-                    ))
-                    ->sendJSON();
-            }
-        }
-
-        // Parse the endpoint and create the task name
-        $endpoint = strtolower($payload['wpe_endpoint']);
-        $task = str_replace(' ', '', ucwords($method . ' ' . str_replace('/', ' ', $endpoint)));
+        $this->decodePayload($payload);
 
         register_shutdown_function(array($this, 'catchError'));
 
-        // Get the task
-        try {
-            $this->task = AutoUpdater_Task::getInstance($task, $payload);
-        } catch (Exception $e) {
-            AutoUpdater_Response::getInstance()
-                ->setCode(400)
-                ->setAutoupdaterHeader()
-                ->setData(array(
-                    'success' => false,
-                    'message' => 'Failed to initialize task ' . $task,
-                    'error' => array(
-                        'code' => $e->getCode(),
-                        'message' => $e->getMessage(),
-                    ),
-                ))
-                ->sendJSON();
-        }
-
+        $this->initTask($method, $payload);
         $this->initialized = true;
         AutoUpdater_Log::traceHooks();
 
@@ -159,16 +93,129 @@ class AutoUpdater_Api
         add_action('wp_ajax_nopriv_autoupdater_api', array($this, 'handle'), $priority);
     }
 
+    /**
+     * @param string $method
+     * 
+     * @return array
+     */
+    protected function getPayload($method)
+    {
+        $payload = array();
+        // Not processing form input data, sanitized in method decodePayload
+        foreach ($_GET as $key => $value) { // phpcs:ignore
+            if (substr($key, 0, 4) == 'wpe_' && $key != 'wpe_signature') {
+                $payload[$key] = urldecode($value);
+            }
+        }
+        // Sort the request data by keys, to generate a correct signature from the payload
+        ksort($payload);
+
+        if ($method == 'post') {
+            // Get the request JSON body, not external URL
+            $body = file_get_contents('php://input'); // phpcs:ignore
+            // Do not decode JSON before validation
+            $payload['json'] = is_string($body) ? $body : '';
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param array $payload
+     * @param string $method
+     */
+    protected function validatePayload(&$payload, $method)
+    {
+        try {
+            // Validate the request payload
+            AutoUpdater_Authentication::getInstance()->validate($payload, $method);
+        } catch (Exception $e) {
+            AutoUpdater_Response::getInstance()
+                ->setCode(403)
+                ->setAutoupdaterHeader()
+                ->setBody(array(
+                    'error' => array(
+                        'code' => $e->getCode(),
+                        'message' => $e->getMessage(),
+                    ),
+                    'request' => array(
+                        'method' => $method,
+                        'payload' => $payload,
+                    ),
+                ))
+                ->sendJSON();
+        }
+    }
+
+    /**
+     * @param array $payload
+     */
+    protected function decodePayload(&$payload)
+    {
+        if (!isset($payload['json'])) {
+            $payload = wp_unslash($payload);
+            return;
+        }
+
+        try {
+            $json = json_decode($payload['json'], true);
+            unset($payload['json']);
+            $payload = wp_unslash(array_merge($payload, $json));
+        } catch (Exception $e) {
+            AutoUpdater_Response::getInstance()
+                ->setCode(400)
+                ->setAutoupdaterHeader()
+                ->setData(array(
+                    'success' => false,
+                    'message' => 'Failed to decode JSON',
+                    'error' => array(
+                        'code' => $e->getCode(),
+                        'message' => $e->getMessage(),
+                    ),
+                ))
+                ->sendJSON();
+        }
+    }
+
+    /**
+     * @param string $method
+     * @param array $payload
+     */
+    protected function initTask($method, &$payload)
+    {
+        // Parse the endpoint and create the task name
+        $endpoint = strtolower($payload['wpe_endpoint']);
+        $task = str_replace(' ', '', ucwords($method . ' ' . str_replace('/', ' ', $endpoint)));
+
+        try {
+            $this->task = AutoUpdater_Task::getInstance($task, $payload);
+        } catch (Exception $e) {
+            AutoUpdater_Response::getInstance()
+                ->setCode(400)
+                ->setAutoupdaterHeader()
+                ->setData(array(
+                    'success' => false,
+                    'message' => 'Failed to initialize task ' . $task,
+                    'error' => array(
+                        'code' => $e->getCode(),
+                        'message' => $e->getMessage(),
+                    ),
+                ))
+                ->sendJSON();
+        }
+    }
+
     protected function grantAdminPrivileges()
     {
-        if (!$this->task->areAdminPrivilegesRequired()) {
+        if (!$this->task->areAdminPrivilegesRequired() || $this->task->input('guest')) {
             return;
         }
 
         AutoUpdater_Authentication::getInstance()->logInAsAdmin();
 
+        // Done on purpose
         global $pagenow;
-        $pagenow = 'update-core.php';
+        $pagenow = 'update-core.php'; // phpcs:ignore
     }
 
     public function handle()
@@ -215,7 +262,7 @@ class AutoUpdater_Api
                 ->setCode($e->getCode());
 
             AutoUpdater_Log::error('Task ' . $this->task->getName() . ' ended with response exception: ' . print_r($response->data, true));
-        } catch (Error $e) {
+        } catch (Error $e) { // phpcs:ignore PHPCompatibility.Classes.NewClasses
             // Catch a fatal error thrown by PHP 7
             $filemanager = AutoUpdater_Filemanager::getInstance();
             $message = sprintf(
@@ -321,7 +368,7 @@ class AutoUpdater_Api
      */
     public function addAdminPagesToGitHubUpdater($admin_pages = array())
     {
-        if (is_array($admin_pages) && !empty($_GET['action']) && $_GET['action'] === 'autoupdater_api') {
+        if (is_array($admin_pages) && AutoUpdater_Request::getQueryVar('action') === 'autoupdater_api') {
             $admin_pages[] = 'admin-ajax.php';
         }
         return $admin_pages;

@@ -1,7 +1,8 @@
 <?php function_exists('add_action') or die; ?>
 <html>
 <head>
-    <title><?php _e('Site is offline', 'autoupdater'); ?></title>
+    <title><?php esc_html_e('Site is offline', 'autoupdater'); ?></title>
+    <meta name="autoupdater" content="maintenance">
     <style type="text/css">
         body {
             background: #f1f1f1;
@@ -25,11 +26,11 @@
     </style>
 </head>
 <body>
-<div id="content">
-    <div id="wrapper">
-        <h2 style="text-align: center"><?php _e('This site is currently undergoing scheduled maintenance.', 'autoupdater'); ?></h2>
-        <p style="text-align: center"><?php _e('Please try back soon!', 'autoupdater'); ?></p>
+    <div id="content">
+        <div id="wrapper">
+            <h2 style="text-align: center"><?php esc_html_e('This site is currently undergoing scheduled maintenance.', 'autoupdater'); ?></h2>
+            <p style="text-align: center"><?php esc_html_e('Please try back soon!', 'autoupdater'); ?></p>
+        </div>
     </div>
-</div>
 </body>
 </html>

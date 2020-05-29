@@ -31,8 +31,7 @@ class AutoUpdater_Task_PostFileUnpack extends AutoUpdater_Task_Base
             'success' => false,
         );
 
-        try
-        {
+        try {
             $destination = $filemanager->unpack($file_path, $destination);
             if ($destination) {
                 $result['success'] = true;
@@ -47,12 +46,10 @@ class AutoUpdater_Task_PostFileUnpack extends AutoUpdater_Task_Base
             $exception = $e;
         }
 
-        try
-        {
+        try {
             // Delete the downloaded file
             $filemanager->delete($file_path);
         } catch (Exception $e) {
-
         }
 
         if (isset($exception)) {

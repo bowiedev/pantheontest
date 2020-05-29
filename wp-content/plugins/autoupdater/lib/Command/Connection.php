@@ -41,7 +41,7 @@ class AutoUpdater_Command_Connection extends AutoUpdater_Command_Base
 
         $query = AutoUpdater_Request::getApiUrlSignedQuery($method, $data);
         foreach ($query as $key => $value) {
-            $query[$key] = $key . '=' . urlencode($value);
+            $query[$key] = $key . '=' . rawurlencode($value);
         }
         $query = implode('&', $query);
 

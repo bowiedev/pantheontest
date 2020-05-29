@@ -17,4 +17,3 @@ class AutoUpdater_Task_PostCmsUpdateAfter extends AutoUpdater_Task_Base
         );
     }
 }
-

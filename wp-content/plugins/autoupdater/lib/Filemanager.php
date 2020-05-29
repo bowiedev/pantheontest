@@ -7,8 +7,8 @@ class AutoUpdater_Filemanager
 
     protected $FS_CHMOD_FILE;
     protected $FS_CHMOD_DIR;
-    static $wp_filesystem;
-    
+    protected static $wp_filesystem;
+
     public function __construct()
     {
         $this->FS_CHMOD_DIR = (fileperms(AUTOUPDATER_SITE_PATH) & 0777 | 0755);
@@ -71,25 +71,7 @@ class AutoUpdater_Filemanager
             return static::$wp_filesystem->get_contents($file);
         }
 
-        return @file_get_contents($file);
-    }
-
-    /**
-     * Reads entire file into an array
-     *
-     * @access public
-     *
-     * @param string $file Path to the file.
-     *
-     * @return array|bool the file contents in an array or false on failure.
-     */
-    public function get_contents_array($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->get_contents_array($file);
-        }
-
-        return @file($file);
+        return @file_get_contents($file); // phpcs:ignore
     }
 
     /**
@@ -99,46 +81,13 @@ class AutoUpdater_Filemanager
      *
      * @param string $file     Remote path to the file where to write the data.
      * @param string $contents The data to write.
+     * @param int $flags
      *
      * @return bool False upon failure, true otherwise.
      */
-    public function put_contents($file, $contents)
+    public function put_contents($file, $contents, $flags = 0)
     {
-        return @file_put_contents($file, $contents) !== false;
-    }
-
-    /**
-     * Gets the current working directory
-     *
-     * @access public
-     *
-     * @return string|bool the current working directory on success, or false on failure.
-     */
-    public function cwd()
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->cwd();
-        }
-
-        return @getcwd();
-    }
-
-    /**
-     * Change directory
-     *
-     * @access public
-     *
-     * @param string $dir The new current directory.
-     *
-     * @return bool Returns true on success or false on failure.
-     */
-    public function chdir($dir)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->chdir($dir);
-        }
-
-        return @chdir($dir);
+        return @file_put_contents($file, $contents, $flags) !== false; // phpcs:ignore
     }
 
     /**
@@ -163,17 +112,17 @@ class AutoUpdater_Filemanager
         }
 
         if (!$recursive) {
-            return @chgrp($file, $group);
+            return @chgrp($file, $group); // phpcs:ignore
         }
 
         if (!$this->is_dir($file)) {
-            return @chgrp($file, $group);
+            return @chgrp($file, $group); // phpcs:ignore
         }
 
         // Is a directory, and we want recursive
         $file = $this->trailingslashit($file);
         $filelist = $this->dirlist($file);
-        foreach ($filelist as $filename) {
+        foreach ($filelist as $filename => $fileinfo) {
             $this->chgrp($file . $filename, $group, $recursive);
         }
 
@@ -209,13 +158,13 @@ class AutoUpdater_Filemanager
         }
 
         if (!$recursive || !$this->is_dir($file)) {
-            return @chmod($file, $mode);
+            return @chmod($file, $mode); // phpcs:ignore
         }
 
         // Is a directory, and we want recursive
         $file = $this->trailingslashit($file);
         $filelist = $this->dirlist($file);
-        foreach ((array)$filelist as $filename => $filemeta) {
+        foreach ((array) $filelist as $filename => $fileinfo) {
             $this->chmod($file . $filename, $mode, $recursive);
         }
 
@@ -245,96 +194,20 @@ class AutoUpdater_Filemanager
         }
 
         if (!$recursive) {
-            return @chown($file, $owner);
+            return @chown($file, $owner); // phpcs:ignore
         }
 
         if (!$this->is_dir($file)) {
-            return @chown($file, $owner);
+            return @chown($file, $owner); // phpcs:ignore
         }
 
         // Is a directory, and we want recursive
         $filelist = $this->dirlist($file);
-        foreach ($filelist as $filename) {
+        foreach ($filelist as $filename => $fileinfo) {
             $this->chown($file . '/' . $filename, $owner, $recursive);
         }
 
         return true;
-    }
-
-    /**
-     * Gets file owner
-     *
-     * @access public
-     *
-     * @param string $file Path to the file.
-     *
-     * @return string|bool Username of the user or false on error.
-     */
-    public function owner($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->owner($file);
-        }
-
-        $owneruid = @fileowner($file);
-        if (!$owneruid) {
-            return false;
-        }
-
-        if (!function_exists('posix_getpwuid')) {
-            return $owneruid;
-        }
-
-        $ownerarray = posix_getpwuid($owneruid);
-
-        return $ownerarray['name'];
-    }
-
-    /**
-     * Gets file permissions
-     *
-     * FIXME does not handle errors in fileperms()
-     *
-     * @access public
-     *
-     * @param string $file Path to the file.
-     *
-     * @return string Mode of the file (last 3 digits).
-     */
-    public function getchmod($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->getchmod($file);
-        }
-
-        return substr(decoct(@fileperms($file)), -3);
-    }
-
-    /**
-     * @access public
-     *
-     * @param string $file
-     *
-     * @return string|false
-     */
-    public function group($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->group($file);
-        }
-
-        $gid = @filegroup($file);
-        if (!$gid) {
-            return false;
-        }
-
-        if (!function_exists('posix_getgrgid')) {
-            return $gid;
-        }
-
-        $grouparray = posix_getgrgid($gid);
-
-        return $grouparray['name'];
     }
 
     /**
@@ -357,7 +230,7 @@ class AutoUpdater_Filemanager
             return false;
         }
 
-        $rtval = copy($source, $destination);
+        $rtval = copy($source, $destination); // phpcs:ignore
         if ($mode) {
             $this->chmod($destination, $mode);
         }
@@ -385,7 +258,7 @@ class AutoUpdater_Filemanager
         }
 
         // Try using rename first. if that fails (for example, source is read only) try copy.
-        if (@rename($source, $destination)) {
+        if (@rename($source, $destination)) { // phpcs:ignore
             return true;
         }
 
@@ -421,11 +294,11 @@ class AutoUpdater_Filemanager
         $file = str_replace('\\', '/', $file); // for win32, occasional problems deleting files otherwise
 
         if ('f' == $type || $this->is_file($file)) {
-            return @unlink($file);
+            return @unlink($file); // phpcs:ignore
         }
 
         if (!$recursive && $this->is_dir($file)) {
-            return @rmdir($file);
+            return @rmdir($file); // phpcs:ignore
         }
 
         // At this point it's a folder, and we're in recursive mode
@@ -441,7 +314,7 @@ class AutoUpdater_Filemanager
             }
         }
 
-        if (file_exists($file) && !@rmdir($file)) {
+        if (file_exists($file) && !@rmdir($file)) { // phpcs:ignore
             $retval = false;
         }
 
@@ -525,81 +398,7 @@ class AutoUpdater_Filemanager
             return static::$wp_filesystem->is_writable($file);
         }
 
-        return @is_writable($file);
-    }
-
-    /**
-     * @access public
-     *
-     * @param string $file
-     *
-     * @return int
-     */
-    public function atime($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->atime($file);
-        }
-
-        return @fileatime($file);
-    }
-
-    /**
-     * @access public
-     *
-     * @param string $file
-     *
-     * @return int
-     */
-    public function mtime($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->mtime($file);
-        }
-
-        return @filemtime($file);
-    }
-
-    /**
-     * @access public
-     *
-     * @param string $file
-     *
-     * @return int
-     */
-    public function size($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->size($file);
-        }
-
-        return @filesize($file);
-    }
-
-    /**
-     * @access public
-     *
-     * @param string $file
-     * @param int    $time
-     * @param int    $atime
-     *
-     * @return bool
-     */
-    public function touch($file, $time = 0, $atime = 0)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->touch($file, $time, $atime);
-        }
-
-        if ($time == 0) {
-            $time = time();
-        }
-
-        if ($atime == 0) {
-            $atime = time();
-        }
-
-        return @touch($file, $time, $atime);
+        return @is_writable($file); // phpcs:ignore
     }
 
     /**
@@ -628,7 +427,7 @@ class AutoUpdater_Filemanager
             $chmod = $this->FS_CHMOD_DIR;
         }
 
-        if (!@mkdir($path)) {
+        if (!@mkdir($path)) { // phpcs:ignore
             return false;
         }
 
@@ -642,19 +441,6 @@ class AutoUpdater_Filemanager
         }
 
         return true;
-    }
-
-    /**
-     * @access public
-     *
-     * @param string $path
-     * @param bool   $recursive
-     *
-     * @return bool
-     */
-    public function rmdir($path, $recursive = false)
-    {
-        return $this->delete($path, $recursive);
     }
 
     /**
@@ -716,7 +502,7 @@ class AutoUpdater_Filemanager
      */
     public function setTempDirWitihnSite()
     {
-        if (defined('WP_TEMP_DIR') && strpos(realpath(WP_TEMP_DIR), realpath(AUTOUPDATER_ROOT_PATH)) === false) {
+        if (defined('WP_TEMP_DIR') && strpos(realpath(WP_TEMP_DIR), realpath(AUTOUPDATER_SITE_PATH)) === false) {
             AutoUpdater_Log::error(sprintf('WP_TEMP_DIR is defined and it points to a location outside of the site: %s', WP_TEMP_DIR));
             return false;
         }
@@ -768,9 +554,9 @@ class AutoUpdater_Filemanager
         if (function_exists('opcache_reset')) {
             // Always reset the OPcache if it's enabled. Otherwise there's a good chance the server will not know we are
             // replacing .php scripts. This is a major concern since PHP 5.5 included and enabled OPcache by default.
-            @opcache_reset();
+            @opcache_reset(); // phpcs:ignore PHPCompatibility.FunctionUse.NewFunctions
         } elseif (function_exists('apc_clear_cache')) {
-            @apc_clear_cache();
+            @apc_clear_cache(); // phpcs:ignore
         }
     }
 
@@ -823,15 +609,6 @@ class AutoUpdater_Filemanager
                 continue;
             }
 
-            $struc['perms'] = $this->gethchmod($path . '/' . $entry);
-            $struc['permsn'] = $this->getnumchmodfromh($struc['perms']); //TODO
-            $struc['number'] = false;
-            $struc['owner'] = $this->owner($path . '/' . $entry);
-            $struc['group'] = $this->group($path . '/' . $entry);
-            $struc['size'] = $this->size($path . '/' . $entry);
-            $struc['lastmodunix'] = $this->mtime($path . '/' . $entry);
-            $struc['lastmod'] = date('M j', $struc['lastmodunix']);
-            $struc['time'] = date('h:i:s', $struc['lastmodunix']);
             $struc['type'] = $this->is_dir($path . '/' . $entry) ? 'd' : 'f';
 
             if ('d' == $struc['type']) {
@@ -848,108 +625,6 @@ class AutoUpdater_Filemanager
         unset($dir);
 
         return $ret;
-    }
-
-    /**
-     * Return the *nix-style file permissions for a file.
-     *
-     * From the PHP documentation page for fileperms().
-     *
-     * @link https://secure.php.net/manual/en/function.fileperms.php
-     *
-     * @param string $file String filename.
-     *
-     * @return string The *nix-style representation of permissions.
-     */
-    public function gethchmod($file)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->gethchmod($file);
-        }
-
-        $perms = intval($this->getchmod($file), 8);
-        if (($perms & 0xC000) == 0xC000) // Socket
-        {
-            $info = 's';
-        } elseif (($perms & 0xA000) == 0xA000) // Symbolic Link
-        {
-            $info = 'l';
-        } elseif (($perms & 0x8000) == 0x8000) // Regular
-        {
-            $info = '-';
-        } elseif (($perms & 0x6000) == 0x6000) // Block special
-        {
-            $info = 'b';
-        } elseif (($perms & 0x4000) == 0x4000) // Directory
-        {
-            $info = 'd';
-        } elseif (($perms & 0x2000) == 0x2000) // Character special
-        {
-            $info = 'c';
-        } elseif (($perms & 0x1000) == 0x1000) // FIFO pipe
-        {
-            $info = 'p';
-        } else // Unknown
-        {
-            $info = 'u';
-        }
-
-        // Owner
-        $info .= (($perms & 0x0100) ? 'r' : '-');
-        $info .= (($perms & 0x0080) ? 'w' : '-');
-        $info .= (($perms & 0x0040) ? (($perms & 0x0800) ? 's' : 'x') : (($perms & 0x0800) ? 'S' : '-'));
-
-        // Group
-        $info .= (($perms & 0x0020) ? 'r' : '-');
-        $info .= (($perms & 0x0010) ? 'w' : '-');
-        $info .= (($perms & 0x0008) ? (($perms & 0x0400) ? 's' : 'x') : (($perms & 0x0400) ? 'S' : '-'));
-
-        // World
-        $info .= (($perms & 0x0004) ? 'r' : '-');
-        $info .= (($perms & 0x0002) ? 'w' : '-');
-        $info .= (($perms & 0x0001) ? (($perms & 0x0200) ? 't' : 'x') : (($perms & 0x0200) ? 'T' : '-'));
-
-        return $info;
-    }
-
-    /**
-     * Convert *nix-style file permissions to a octal number.
-     *
-     * Converts '-rw-r--r--' to 0644
-     * From "info at rvgate dot nl"'s comment on the PHP documentation for chmod()
-     *
-     * @link https://secure.php.net/manual/en/function.chmod.php#49614
-     *
-     * @param string $mode string The *nix-style file permission.
-     *
-     * @return int octal representation
-     */
-    public function getnumchmodfromh($mode)
-    {
-        if (static::$wp_filesystem) {
-            return static::$wp_filesystem->getnumchmodfromh($mode);
-        }
-
-        $realmode = '';
-        $legal = array('', 'w', 'r', 'x', '-');
-        $attarray = preg_split('//', $mode);
-
-        for ($i = 0, $c = count($attarray); $i < $c; $i++) {
-            if ($key = array_search($attarray[$i], $legal)) {
-                $realmode .= $legal[$key];
-            }
-        }
-
-        $mode = str_pad($realmode, 10, '-', STR_PAD_LEFT);
-        $trans = array('-' => '0', 'r' => '4', 'w' => '2', 'x' => '1');
-        $mode = strtr($mode, $trans);
-
-        $newmode = $mode[0];
-        $newmode .= $mode[1] + $mode[2] + $mode[3];
-        $newmode .= $mode[4] + $mode[5] + $mode[6];
-        $newmode .= $mode[7] + $mode[8] + $mode[9];
-
-        return $newmode;
     }
 
     /**
@@ -996,62 +671,5 @@ class AutoUpdater_Filemanager
         }
 
         return $path;
-    }
-
-    /**
-     * Set the mbstring internal encoding to a binary safe encoding when func_overload
-     * is enabled.
-     *
-     * When mbstring.func_overload is in use for multi-byte encodings, the results from
-     * strlen() and similar functions respect the utf8 characters, causing binary data
-     * to return incorrect lengths.
-     *
-     * This function overrides the mbstring encoding to a binary-safe encoding, and
-     * resets it to the users expected encoding afterwards through the
-     * `reset_mbstring_encoding` function.
-     *
-     * It is safe to recursively call this function, however each
-     * `mbstring_binary_safe_encoding()` call must be followed up with an equal number
-     * of `reset_mbstring_encoding()` calls.
-     *
-     * @staticvar array $encodings
-     * @staticvar bool  $overloaded
-     *
-     * @param bool $reset Optional. Whether to reset the encoding back to a previously-set encoding.
-     *                    Default false.
-     */
-    protected function mbstring_binary_safe_encoding($reset = false)
-    {
-        static $encodings = array();
-        static $overloaded = null;
-
-        if (is_null($overloaded)) {
-            $overloaded = function_exists('mb_internal_encoding') && (ini_get('mbstring.func_overload') & 2);
-        }
-
-        if (false === $overloaded) {
-            return;
-        }
-
-        if (!$reset) {
-            $encoding = mb_internal_encoding();
-            array_push($encodings, $encoding);
-            mb_internal_encoding('ISO-8859-1');
-        }
-
-        if ($reset && $encodings) {
-            $encoding = array_pop($encodings);
-            mb_internal_encoding($encoding);
-        }
-    }
-
-    /**
-     * Reset the mbstring internal encoding to a users previously set encoding.
-     *
-     * @see   mbstring_binary_safe_encoding()
-     */
-    protected function reset_mbstring_encoding()
-    {
-        $this->mbstring_binary_safe_encoding(true);
     }
 }

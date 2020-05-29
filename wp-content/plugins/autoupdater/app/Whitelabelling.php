@@ -22,8 +22,7 @@ class AutoUpdater_WP_Whitelabelling
 
     public function __construct()
     {
-        if (AutoUpdater_Config::get('hide_child') &&
-            !(isset($_GET['whitelabel']) && $_GET['whitelabel'] == 'off')) {
+        if (AutoUpdater_Config::get('hide_child') && AutoUpdater_Request::getQueryVar('whitelabel') !== 'off') {
             $this->hidden = true;
         }
 
@@ -36,7 +35,6 @@ class AutoUpdater_WP_Whitelabelling
         add_filter('plugin_row_meta', array($this, 'whiteLabelPluginOnList'), 10, 4);
         add_filter('network_admin_plugin_action_links_' . AUTOUPDATER_WP_PLUGIN_SLUG, array($this, 'whiteLabelPluginActions'), 10, 4);
         add_filter('plugin_action_links_' . AUTOUPDATER_WP_PLUGIN_SLUG, array($this, 'whiteLabelPluginActions'), 10, 4);
-        add_action('login_footer', array($this, 'whiteLabelLoginPage'));
         add_filter('all_plugins', array($this, 'modifyPluginDescription'));
     }
 
@@ -102,15 +100,6 @@ class AutoUpdater_WP_Whitelabelling
         }
 
         return $translations;
-    }
-
-    public function whiteLabelLoginPage()
-    {
-        $login_page_text = AutoUpdater_Config::get('whitelabel_login_page');
-        if ($login_page_text) {
-            $this->cloakEmail($login_page_text);
-            echo $login_page_text;
-        }
     }
 
     /**
@@ -216,26 +205,12 @@ class AutoUpdater_WP_Whitelabelling
         return $updates_info;
     }
 
-    /**
-     * Simple method for cloaking email.
-     *
-     * @param string $text
-     */
-    protected function cloakEmail(&$text)
-    {
-        if (strpos($text, '@') === false) {
-            return;
-        }
-
-        $text = str_replace('mailto:', '&#109;&#97;&#105;&#108;&#116;&#111;&#58;', $text);
-        $text = str_replace('@', '&#64;', $text);
-        $text = str_replace('.', '&#46;', $text);
-    }
-
     public function modifyPluginDescription($all_plugins)
     {
-        if (isset($all_plugins[AUTOUPDATER_WP_PLUGIN_SLUG]) &&
-            ($description = AutoUpdater_Config::get('whitelabel_child_page'))) {
+        if (
+            isset($all_plugins[AUTOUPDATER_WP_PLUGIN_SLUG]) &&
+            ($description = AutoUpdater_Config::get('whitelabel_child_page'))
+        ) {
             $all_plugins[AUTOUPDATER_WP_PLUGIN_SLUG]['Description'] = $description;
         }
 

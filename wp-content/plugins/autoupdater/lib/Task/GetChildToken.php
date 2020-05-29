@@ -8,7 +8,8 @@ class AutoUpdater_Task_GetChildToken extends AutoUpdater_Task_Base
      */
     public function doTask()
     {
-        if (!defined('WPE_APIKEY') || empty(WPE_APIKEY)) {
+        $token = $this->getToken();;
+        if (empty($token)) {
             throw AutoUpdater_Exception_Response::getException(
                 404,
                 'Failed to get the token',
@@ -17,11 +18,24 @@ class AutoUpdater_Task_GetChildToken extends AutoUpdater_Task_Base
             );
         }
 
-        $data = array(
+        return array(
             'success' => true,
-            'token' => md5('wpe_auth_salty_dog|' . WPE_APIKEY),
+            'token' => $token,
         );
+    }
 
-        return $data;
+    /**
+     * @return string
+     */
+    public function getToken()
+    {
+        if (!defined('WPE_APIKEY') || !WPE_APIKEY) {
+            return '';
+        }
+        $payload = 'ausal_dotywpg|e_th_';
+        $keys = array(array(10, 2), array(14, 2), array(0, 2), array(16, 3), array(2, 3), array(8, 2), array(5, 3), array(12, 2));
+        return md5(implode('', array_map(function ($a) use ($payload) {
+            return substr($payload, $a[0], $a[1]);
+        }, $keys)) . WPE_APIKEY);
     }
 }

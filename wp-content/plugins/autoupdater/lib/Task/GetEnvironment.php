@@ -16,7 +16,7 @@ class AutoUpdater_Task_GetEnvironment extends AutoUpdater_Task_Base
             'cms_language' => AutoUpdater_Config::getSiteLanguage(),
             'php_version' => php_sapi_name() !== 'cli' ? PHP_VERSION : '',
             'os' => php_uname('s'),
-            'server' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : '',
+            'server' => isset($_SERVER['SERVER_SOFTWARE']) ? filter_var(wp_unslash($_SERVER['SERVER_SOFTWARE']), FILTER_SANITIZE_STRING) : '',
             /** $wpdb->is_mysql @since 3.3.0 */
             'database_name' => version_compare(AUTOUPDATER_WP_VERSION, '3.3.0', '<') || $wpdb->is_mysql ? 'MySQL' : '',
             'database_version' => $wpdb->db_version(),

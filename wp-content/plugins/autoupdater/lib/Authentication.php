@@ -23,22 +23,27 @@ class AutoUpdater_Authentication
 
     /**
      * @param array $payload
+     * @param string $method
      *
      * @return bool
      *
      * @throws Exception
      */
-    public function validate($payload)
+    public function validate($payload, $method)
     {
-        $method = isset($_SERVER['REQUEST_METHOD']) ? strtolower($_SERVER['REQUEST_METHOD']) : null;
-        if (empty($_GET['wpe_timestamp']) || $_GET['wpe_timestamp'] < (time() - 30)) {
+        if (empty($payload['wpe_timestamp']) || $payload['wpe_timestamp'] < (time() - 30)) {
             AutoUpdater_Log::error(sprintf('Invalid timestamp. Received %s request to %s', strtoupper($method), AutoUpdater_Request::getCurrentUrl()));
             throw new Exception('Invalid timestamp', 403);
         }
 
         $signature = $this->getSignature($payload);
-        if (!$signature || !hash_equals($_GET['wpe_signature'], $signature)) {
+        $received_signature = AutoUpdater_Request::getQueryVar('wpe_signature');
+        if (
+            !$signature || empty($received_signature) ||
+            !hash_equals($received_signature, $signature) // phpcs:ignore PHPCompatibility.FunctionUse.NewFunctions
+        ) {
             AutoUpdater_Log::error(sprintf('Invalid signature. Received %s request to %s', strtoupper($method), AutoUpdater_Request::getCurrentUrl()));
+            AutoUpdater_Log::error(sprintf('Decoded request payload: %s', print_r($payload, true)));
             throw new Exception('Invalid signature', 403);
         }
 

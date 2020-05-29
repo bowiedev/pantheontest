@@ -8,7 +8,7 @@ class AutoUpdater_Task_PostExtensionDisable extends AutoUpdater_Task_Base
      */
     public function doTask()
     {
-        $extensions = (array)$this->input('extensions', array());
+        $extensions = (array) $this->input('extensions', array());
 
         $plugins = array();
         foreach ($extensions as $extension) {
@@ -27,7 +27,18 @@ class AutoUpdater_Task_PostExtensionDisable extends AutoUpdater_Task_Base
             throw new AutoUpdater_Exception_Response('No extensions to deactivate', 400);
         }
 
-        // TODO check if extensions exist
+        AutoUpdater_Loader::loadClass('Helper_Extension');
+        $filemanager = AutoUpdater_Filemanager::getInstance();
+        // Find a real path to plugins as the input might be lower-case while the directory name uses capital letters too
+        foreach ($plugins as &$plugin) {
+            if ($filemanager->exists(WP_PLUGIN_DIR . '/' . $plugin)) {
+                continue;
+            }
+            $new_plugin = AutoUpdater_Helper_Extension::getPluginRealSlug($plugin);
+            if ($new_plugin && $filemanager->exists(WP_PLUGIN_DIR . '/' . $new_plugin)) {
+                $plugin = $new_plugin;
+            }
+        }
 
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
         deactivate_plugins($plugins, true);

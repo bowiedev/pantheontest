@@ -270,7 +270,7 @@ class AutoUpdater_Task_GetExtensions extends AutoUpdater_Task_Base
                 if (!empty($plugin->new_version)) {
                     if (isset($plugin->package)) {
                         // Filter and validate download URL
-                        $plugin->package = trim(html_entity_decode($plugin->package));
+                        $plugin->package = trim(html_entity_decode($plugin->package, ENT_QUOTES, 'UTF-8'));
                         if (filter_var($plugin->package, FILTER_VALIDATE_URL) === false) {
                             $plugin->package = '';
                         }
@@ -300,7 +300,7 @@ class AutoUpdater_Task_GetExtensions extends AutoUpdater_Task_Base
                 if (!empty($theme->new_version)) {
                     if (isset($theme->package)) {
                         // Filter and validate download URL
-                        $theme->package = trim(html_entity_decode($theme->package));
+                        $theme->package = trim(html_entity_decode($theme->package, ENT_QUOTES, 'UTF-8'));
                         if (filter_var($theme->package, FILTER_VALIDATE_URL) === false) {
                             $theme->package = '';
                         }

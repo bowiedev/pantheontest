@@ -82,7 +82,7 @@ class AutoUpdater_Installer
 
     public function selfUpdate()
     {
-        if (isset($_GET['wpe_endpoint']) && in_array($_GET['wpe_endpoint'], array('child/update/after', 'child/verify'))) {
+        if (in_array(AutoUpdater_Request::getQueryVar('wpe_endpoint'), array('child/update/after', 'child/verify'))) {
             // Do not run self-update as we are running it through API
             return;
         }
@@ -121,7 +121,7 @@ class AutoUpdater_Installer
             );
             AutoUpdater_Config::set('autoupdate_at', array_key_exists($time_of_day, $day_periods) ? $day_periods[$time_of_day] : 12);
 
-            $excludedSlugsMigrationFunction = function($value){
+            $excludedSlugsMigrationFunction = function ($value) {
                 list(, $slug) = explode('::', $value, 2);
                 return $slug;
             };
@@ -157,7 +157,7 @@ class AutoUpdater_Installer
             }
             $files = $filemanager->dirlist($old_path, false);
             if (is_array($files)) {
-                foreach ($files as $file => $item) {
+                foreach ($files as $file => $fileinfo) {
                     if (strpos($file, 'autoupdater_') === 0) {
                         $filemanager->move($old_path . $file, $new_path . $file);
                     }
@@ -202,9 +202,9 @@ class AutoUpdater_Installer
     {
         $key = '';
         $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $max = strlen($chars)  - 1;        
+        $max = strlen($chars)  - 1;
         for ($i = 0; $i < 32; ++$i) {
-            $key .= $chars[random_int(0, $max)];
+            $key .= $chars[wp_rand(0, $max)];
         }
 
         return $key;
