@@ -8,11 +8,12 @@ jobs:
     runs-on: ubuntu-latest
         
     steps: 
-    - name: Deploy to WP Engine 
-      uses: bowiedev/github-action-wpengine-ssh-deploy@master 
+    - name: Installing SSH 
       run: |
         apt-get -yq update
-        apt-get -yqq install ssh
+        apt-get -yqq install ssh 
+    - name: Deploy to WP Engine 
+      uses: bowiedev/github-action-wpengine-ssh-deploy@master 
       env: 
           WPE_ENV_NAME: selive
           WPENGINE_SSHG_KEY_PUBLIC: ${{ secrets.WPENGINE_SSHG_KEY_PUBLIC }}
