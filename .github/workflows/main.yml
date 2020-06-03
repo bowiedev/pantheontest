@@ -6,13 +6,11 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
+        
     steps: 
     - name: Deploy to WP Engine 
     - uses: bowiedev/github-action-wpengine-ssh-deploy@master 
+      shell: bash
       env: 
           WPE_ENV_NAME: selive
           WPENGINE_SSHG_KEY_PUBLIC: ${{ secrets.WPENGINE_SSHG_KEY_PUBLIC }}
