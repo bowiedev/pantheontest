@@ -6,10 +6,11 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        shell: bash
+
     steps: 
-    - name: Install Shell dependencies
-      run: apt-get -yq update && apt-get -yqq install ssh
     - name: Deploy to WP Engine 
     - uses: bowiedev/github-action-wpengine-ssh-deploy@master 
       env: 
