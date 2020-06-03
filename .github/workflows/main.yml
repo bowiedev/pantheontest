@@ -1,6 +1,6 @@
 name: Deploy to WP Engine
   
-on: [push]
+on: = [push]
 
 jobs:
   build:
@@ -9,8 +9,8 @@ jobs:
     
     steps: 
     - name: Deploy to WP Engine 
-    - uses: bowiedev/github-action-wpengine-ssh-deploy@master
-    - env: 
+    - uses: bowiedev/github-action-wpengine-ssh-deploy@master 
+      env: 
           WPE_ENV_NAME: selive
           WPENGINE_SSHG_KEY_PUBLIC: ${{ secrets.WPENGINE_SSHG_KEY_PUBLIC }}
           WPENGINE_SSHG_KEY_PRIVATE: ${{ secrets.WPENGINE_SSHG_KEY_PRIVATE }}
