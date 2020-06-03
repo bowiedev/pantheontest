@@ -6,9 +6,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
         
     steps: 
     - name: Deploy to WP Engine 
