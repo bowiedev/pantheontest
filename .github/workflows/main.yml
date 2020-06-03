@@ -9,9 +9,8 @@ jobs:
         
     steps: 
     - name: Installing SSH 
-      run: |
-        apt-get -yq update
-        apt-get -yqq install ssh 
+      run: 
+        shell: bash
     - name: Deploy to WP Engine 
       uses: bowiedev/github-action-wpengine-ssh-deploy@master 
       env: 
