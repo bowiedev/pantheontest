@@ -8,9 +8,14 @@ jobs:
     runs-on: ubuntu-latest
         
     steps: 
-    - name: Deploy to WP Engine 
+    - name: Setup SSH Connection
       uses: bowiedev/github-action-wpengine-ssh-deploy@master 
       env: 
           WPE_ENV_NAME: selive
           WPENGINE_SSHG_KEY_PUBLIC: ${{ secrets.WPENGINE_SSH_KEY_PUBLIC }}
           WPENGINE_SSHG_KEY_PRIVATE: ${{ secrets.WPENGINE_SSH_KEY_PRIVATE }}
+    - name: Deploy To WP Engine 
+      run: |
+        rsync -v --rsh='ssh -p 22' -a --exclude=".*" . $WPE_ENV_NAME@$WPENGINE_SSH_HOST:sites/$WPE_ENV_NAME/
+
+
