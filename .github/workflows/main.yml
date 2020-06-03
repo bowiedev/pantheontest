@@ -9,7 +9,7 @@ jobs:
         
     steps: 
     - name: Deploy to WP Engine 
-    - uses: bowiedev/github-action-wpengine-ssh-deploy@master 
+      uses: bowiedev/github-action-wpengine-ssh-deploy@master 
       shell: bash
       env: 
           WPE_ENV_NAME: selive
