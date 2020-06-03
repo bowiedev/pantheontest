@@ -1,12 +1,11 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: WPE SSH Deploy
 
 workflow "Deploy to WP Engine" {
   on = "push"
   resolves = ["SSH Deploy to WP Engine"]
 }
-
 action "SSH Deploy to WP Engine" {
   uses = "bowiedev/github-action-wpengine-ssh-deploy@master"
   env = {
