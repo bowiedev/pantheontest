@@ -1,6 +1,6 @@
 name: Deploy to WP Engine
   
-on: = [push]
+on: [push]
 
 jobs:
   build:
