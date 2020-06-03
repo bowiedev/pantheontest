@@ -1,18 +1,16 @@
-# This is a basic workflow to help you get started with Actions
+name: Deploy to WP Engine
+  
+on: = [push]
 
-name: WPE SSH Deploy
+jobs:
+  build:
 
-workflow "Deploy to WP Engine" {
-  on = "push"
-  resolves = ["SSH Deploy to WP Engine"]
-  }
-action "SSH Deploy to WP Engine" {
-    uses = "bowiedev/github-action-wpengine-ssh-deploy@master"
-    env = {
-      WPE_ENV_NAME = "selive"
-    }
-  secrets = [
-      "WPENGINE_SSHG_KEY_PRIVATE",
-      "WPENGINE_SSHG_KEY_PUBLIC"
-    ]
-  }
+    runs-on: ubuntu-latest
+    
+    steps: 
+    - name: Deploy to WP Engine 
+    - uses: bowiedev/github-action-wpengine-ssh-deploy
+    - env: 
+          WPE_ENV_NAME: selive
+          WPENGINE_SSHG_KEY_PUBLIC: ${{ secrets.WPENGINE_SSHG_KEY_PUBLIC }}
+          WPENGINE_SSHG_KEY_PRIVATE: ${{ secrets.WPENGINE_SSHG_KEY_PRIVATE }}
