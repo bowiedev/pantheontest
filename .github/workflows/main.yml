@@ -1,6 +1,7 @@
 name: Deploy to WP Engine
   
-push:
+on:
+  push:
     branches:
       - master
 
